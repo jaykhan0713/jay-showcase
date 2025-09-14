@@ -1,11 +1,20 @@
-# build with JDK 24
+# ---- build stage ----
 FROM eclipse-temurin:24-jdk AS build
 WORKDIR /app
-COPY gradlew gradle/ settings.gradle.kts build.gradle.kts ./
+
+# Copy Gradle wrapper FIRST so layers cache well
+COPY gradlew gradlew.bat ./
+COPY gradle/wrapper/ ./gradle/wrapper/
+
+# Build scripts
+COPY settings.gradle.kts build.gradle.kts ./
+
+# Sources
 COPY src ./src
+
 RUN chmod +x gradlew && ./gradlew --no-daemon clean bootJar
 
-# slim runtime with JRE 24
+# ---- runtime stage ----
 FROM eclipse-temurin:24-jre
 WORKDIR /app
 COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar
